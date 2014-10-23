@@ -92,7 +92,7 @@ Here are a list of supported options for sendgrid\_enable and sendgrid\_disable:
 * :spamcheck
   * Call sendgrid\_spamcheck\_maxscore(4.5) to set a custom SpamAssassin threshold at which SendGrid drops emails (default value is 5.0).
 
-For further explanation see [SendGrid's wiki page on filters.](http://wiki.sendgrid.com/doku.php?id=filters)
+For further explanation see [SendGrid's wiki page on Apps (Filters).](https://sendgrid.com/docs/API_Reference/SMTP_API/apps.html)
 
 Custom parameters can be set using the sendgrid_unique_args methods.  Any key/value pairs defined thusly will
 be included as parameters in SendGrid post backs.  These are especially useful in cases where the recipient's
