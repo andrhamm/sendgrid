@@ -178,12 +178,23 @@ module SendGrid
     # NOTE: This override is used for Rails 3 ActionMailer classes.
     def mail(headers={}, &block)
       m = super
+
+      # Remember, mail() called without args or block is an
+      # accessor to the current message if already called
+      # see: https://github.com/rails/rails/blob/4-1-stable/actionmailer/lib/action_mailer/base.rb#L760
+      return m if @_mail_was_called && headers.blank? && !block
+
       if @sg_substitutions && !@sg_substitutions.empty?
         @sg_substitutions.each do |find, replace|
           raise ArgumentError.new("Array for #{find} is not the same size as the recipient array") if replace.size != @sg_recipients.size
         end
       end
       puts "SendGrid X-SMTPAPI: #{sendgrid_json_headers(message)}" if Object.const_defined?("SENDGRID_DEBUG_OUTPUT") && SENDGRID_DEBUG_OUTPUT
+
+      # Prevent setting this header more than once as per:
+      # https://github.com/rails/rails/blob/4-1-stable/actionmailer/lib/action_mailer/base.rb#L41-L46
+      self.headers['X-SMTPAPI'] = nil
+
       self.headers['X-SMTPAPI'] = sendgrid_json_headers(message)
       m
     end
