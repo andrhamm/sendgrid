@@ -25,10 +25,12 @@ module SendGrid
     base.class_eval do
       class << self
         attr_accessor :default_sg_category, :default_sg_options, :default_subscriptiontrack_text,
-                      :default_footer_text, :default_spamcheck_score, :default_sg_unique_args
+                      :default_footer_text, :default_spamcheck_score, :default_sg_unique_args,
+                      :default_sg_asm_group_id
       end
       attr_accessor :sg_category, :sg_options, :sg_disabled_options, :sg_recipients, :sg_substitutions,
-                    :subscriptiontrack_text, :footer_text, :spamcheck_score, :sg_unique_args
+                    :subscriptiontrack_text, :footer_text, :spamcheck_score, :sg_unique_args,
+                    :asm_group_id
     end
 
     # NOTE: This commented-out approach may be a "safer" option for Rails 3, but it
@@ -67,7 +69,7 @@ module SendGrid
       self.default_sg_options = Array.new unless self.default_sg_options
       options.each { |option| self.default_sg_options << option if VALID_OPTIONS.include?(option) }
     end
-    
+
     # Sets the default text for subscription tracking (must be enabled).
     # There are two options:
     # 1. Add an unsubscribe link at the bottom of the email
@@ -96,6 +98,11 @@ module SendGrid
     def sendgrid_unique_args(unique_args = {})
       self.default_sg_unique_args = unique_args
     end
+
+    # Sets the default ASM suppression group ID at the class level
+    def sendgrid_suppression_group(asm_group_id)
+      self.default_sg_asm_group_id = asm_group_id
+    end
   end
 
   # Call within mailer method to override the default value.
@@ -107,6 +114,11 @@ module SendGrid
   # Merged with class-level unique args, if any exist.
   def sendgrid_unique_args(unique_args = {})
     @sg_unique_args = unique_args
+  end
+
+  # Call within mailer method to set ASM suppression group for this email
+  def sendgrid_suppression_group(asm_group_id)
+    @sg_asm_group_id = asm_group_id
   end
 
   # Call within mailer method to add an option not in the defaults.
@@ -156,7 +168,7 @@ module SendGrid
     @ganalytics_options = []
     options.each { |option| @ganalytics_options << option if VALID_GANALYTICS_OPTIONS.include?(option[0].to_sym) }
   end
-  
+
   # only override the appropriate methods for the current ActionMailer version
   if ActionMailer::Base.respond_to?(:mail)
 
@@ -201,7 +213,7 @@ module SendGrid
 
     #if not called within the mailer method, this will be nil so we default to empty hash
     @sg_unique_args = @sg_unique_args || {}
-    
+
     # set the unique arguments
     if @sg_unique_args || self.class.default_sg_unique_args
       unique_args = self.class.default_sg_unique_args || {}
@@ -229,6 +241,13 @@ module SendGrid
     # Set custom substitions
     if @sg_substitutions && !@sg_substitutions.empty?
       header_opts[:sub] = @sg_substitutions
+    end
+
+    # Set Advanced Suppression Manager group ID
+    if @sg_asm_group_id
+      header_opts[:asm_group_id] = @sg_asm_group_id
+    elsif self.class.default_sg_asm_group_id
+      header_opts[:asm_group_id] = self.class.default_sg_asm_group_id
     end
 
     # Set enables/disables
